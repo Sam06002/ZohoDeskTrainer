@@ -1,0 +1,59 @@
+// DeepSeek V3 integration with structured output
+deepseek_request = {
+    "model": "deepseek-r1-lite-preview",
+    "messages": [{
+        "role": "user",
+        "content": "Analyze this support ticket. " + 
+                   "Predict department (Billing/Technical/Refund/General) " +
+                   "and explain why in JSON format: {department: '', reason: ''}\n\n" +
+                   "CONTENT: " + input.emailContent
+    }],
+    "temperature": 0.2
+};
+
+response = zoho.http.post(
+    "https://api.deepseek.com/v1/chat/completions",
+    deepseek_request,
+    {
+        "Authorization": "Bearer " + config.deepseekApiKey,
+        "Content-Type": "application/json"
+    }
+);
+
+// Start of added error handling
+if(response.status == 429) {
+    wait 2000;
+    response = zoho.http.post(
+        "https://api.deepseek.com/v1/chat/completions",
+        deepseek_request,
+        {
+            "Authorization": "Bearer " + config.deepseekApiKey,
+            "Content-Type": "application/json"
+        }
+    );
+}
+
+if(response.status != 200) {
+    return {
+        "error": "API Error",
+        "status_code": response.status,
+        "message": response.body.error.message
+    };
+}
+// End of added error handling
+
+if(response.status == 200) {
+    try {
+        json_start = response.body.indexOf("{");
+        json_end = response.body.lastIndexOf("}");
+        prediction = zoho.json.parse(response.body.substring(json_start, json_end+1));
+        
+        return {
+            "department": prediction.department,
+            "reason": prediction.reason,
+            "model_version": "deepseek-r1-lite-preview-v3"
+        };
+    } catch (e) {
+        return {"error": "Failed to parse AI response"};
+    }
+}

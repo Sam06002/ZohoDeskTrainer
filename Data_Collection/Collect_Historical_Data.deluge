@@ -1,0 +1,17 @@
+// Enhanced with AI feedback tracking
+tickets = zoho.desk.getTickets("status=Closed", "department,emails,AI_Prediction__c");
+
+for each ticket in tickets {
+    if(ticket.department != "Unassigned") {
+        training_record = Map();
+        training_record.put("TicketID", ticket.id);
+        training_record.put("EmailContent", 
+            ticket.emails[0].subject + " | " + ticket.emails[0].content);
+        training_record.put("AI_Prediction", ticket.AI_Prediction__c.department);
+        training_record.put("AI_Reason", ticket.AI_Prediction__c.reason);
+        training_record.put("Final_Department", ticket.department.name);
+        training_record.put("Agent_Notes", ticket.assignment_notes);
+        
+        zoho.desk.createRecord("AI_Training_Data", training_record);
+    }
+}

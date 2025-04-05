@@ -1,0 +1,19 @@
+// Handle agent feedback on AI predictions
+feedback = input.feedback;
+ticket = zoho.desk.getTicket(input.ticketID);
+
+update_data = Map();
+update_data.put("Agent_Notes", feedback.notes);
+
+if(feedback.correctDepartment != ticket.AI_Prediction__c.department) {
+    update_data.put("Feedback_Type", "Correction");
+} else {
+    update_data.put("Feedback_Type", "Confirmation");
+}
+
+zoho.desk.updateRecord("AI_Training_Data", 
+    zoho.desk.searchRecords("AI_Training_Data", "TicketID==" + input.ticketID)[0].id,
+    update_data
+);
+
+return {"status": "success", "ticketID": input.ticketID};

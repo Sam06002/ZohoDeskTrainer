@@ -1,0 +1,34 @@
+// Model retraining workflow
+retraining_data = zoho.desk.getRecords("AI_Training_Data", 10000, "Feedback_Type=Correction");
+
+// Prepare training dataset
+csv_content = "text,label\n";
+for each record in retraining_data {
+    clean_text = record.EmailContent.replaceAll("\"", "'");
+    csv_content += `"${clean_text}","${record.Final_Department}"\n`;
+}
+
+// Send to DeepSeek fine-tuning API
+fine_tune_request = {
+    "training_file": csv_content,
+    "model": "deepseek-r1-lite-preview",
+    "hyperparameters": {
+        "n_epochs": 3,
+        "batch_size": 16
+    }
+};
+
+response = zoho.http.post(
+    "https://api.deepseek.com/v1/fine_tuning/jobs",
+    fine_tune_request,
+    {
+        "Authorization": "Bearer " + config.deepseekApiKey,
+        "Content-Type": "application/json"
+    }
+);
+
+if(response.status == 201) {
+    return {"status": "success", "job_id": response.body.id};
+} else {
+    return {"error": "Retraining failed", "details": response.body};
+}

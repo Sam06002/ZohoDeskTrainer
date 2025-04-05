@@ -1,0 +1,20 @@
+// Enhanced CSV with AI/human comparison
+header = "EmailContent,AI_Prediction,AI_Reason,Final_Department,Agent_Notes\n";
+csv_content = header;
+
+training_data = zoho.desk.getRecords("AI_Training_Data", 5000, 
+    "Created_Time>=last_month", "EmailContent,AI_Prediction,Final_Department");
+
+for each record in training_data {
+    clean_notes = record.Agent_Notes.replaceAll("\"", "'");
+    line = `"${record.EmailContent}","${record.AI_Prediction}",` +
+           `"${record.AI_Reason}","${record.Final_Department}",` +
+           `"${clean_notes}"\n`;
+    csv_content += line;
+}
+
+zoho.mail.send({
+    to: config.mlTeamEmail,
+    subject: "AI Training Dataset - " + zoho.currentdate,
+    attachments: {"training_data.csv": csv_content}
+});
